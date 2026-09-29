@@ -3,10 +3,14 @@
 namespace Tests\Feature;
 
 use App\Models\AuditLog;
+use App\Models\Document;
 use App\Models\Program;
+use App\Models\Role;
 use App\Models\User;
 use App\Services\ProgramService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class ProgramManagementTest extends TestCase
@@ -145,5 +149,115 @@ class ProgramManagementTest extends TestCase
 
         $response->assertForbidden();
         $this->assertNotSoftDeleted($program);
+    }
+
+    public function test_admin_can_create_program_with_proposal_pdf_and_doc_files(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::where('email', 'admin@dkst.itb.ac.id')->first();
+        $staff = User::factory()->create(['name' => 'Staf Pengembang']);
+
+        $proposalPdf = UploadedFile::fake()->create('proposal_program_dkst.pdf', 500, 'application/pdf');
+        $torDoc = UploadedFile::fake()->create('tor_program.docx', 300, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+
+        $response = $this->actingAs($admin)->post('/admin/programs', [
+            'name' => 'Program Inkubasi Startup DeepTech',
+            'description' => 'Proposal inkubasi startup deeptech 2026',
+            'pic_id' => $staff->id,
+            'start_date' => '2026-03-01',
+            'end_date' => '2026-11-30',
+            'budget' => 750000000,
+            'proposal_file' => $proposalPdf,
+            'additional_files' => [$torDoc],
+        ]);
+
+        $program = Program::where('name', 'Program Inkubasi Startup DeepTech')->first();
+        $this->assertNotNull($program);
+        $response->assertRedirect("/admin/programs/{$program->id}");
+
+        // Assert documents exist in database
+        $this->assertDatabaseHas('documents', [
+            'program_id' => $program->id,
+            'name' => 'Dokumen Proposal - Program Inkubasi Startup DeepTech',
+            'file_type' => 'pdf',
+            'category' => Document::CATEGORY_PROPOSAL,
+        ]);
+
+        $this->assertDatabaseHas('documents', [
+            'program_id' => $program->id,
+            'file_name' => 'tor_program.docx',
+            'file_type' => 'docx',
+            'category' => Document::CATEGORY_OTHER,
+        ]);
+
+        // Assert file stored in fake storage
+        $doc = $program->documents()->where('category', Document::CATEGORY_PROPOSAL)->first();
+        $this->assertNotNull($doc);
+        Storage::disk('public')->assertExists($doc->file_path);
+
+        // Test downloading the document
+        $downloadResponse = $this->actingAs($admin)->get("/admin/documents/{$doc->id}/download");
+        $downloadResponse->assertOk();
+
+        // Test previewing the PDF document
+        $previewResponse = $this->actingAs($admin)->get("/admin/documents/{$doc->id}/preview");
+        $previewResponse->assertOk();
+    }
+
+    public function test_program_creation_fails_when_uploading_invalid_file_type(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::where('email', 'admin@dkst.itb.ac.id')->first();
+
+        $invalidFile = UploadedFile::fake()->create('malicious.exe', 100, 'application/x-msdownload');
+
+        $response = $this->actingAs($admin)->post('/admin/programs', [
+            'name' => 'Program Invalid File Test',
+            'start_date' => '2026-03-01',
+            'end_date' => '2026-11-30',
+            'budget' => 100000000,
+            'proposal_file' => $invalidFile,
+        ]);
+
+        $response->assertSessionHasErrors(['proposal_file']);
+    }
+
+    public function test_director_can_download_and_preview_program_documents(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::where('email', 'admin@dkst.itb.ac.id')->first();
+        $directorRole = Role::where('slug', 'director')->first();
+        $director = User::factory()->create();
+        $director->roles()->attach($directorRole);
+
+        $file = UploadedFile::fake()->create('usulan_resmi.pdf', 200, 'application/pdf');
+        $filePath = $file->store('documents/programs', 'public');
+
+        $program = Program::create([
+            'code' => 'DKST-PRG-2026-0100',
+            'name' => 'Program Uji Direktur Doc',
+            'budget' => 200000000,
+            'status' => Program::STATUS_SUBMITTED,
+            'created_by' => $admin->id,
+        ]);
+
+        $doc = $program->documents()->create([
+            'name' => 'Dokumen Usulan Program',
+            'file_path' => $filePath,
+            'file_name' => 'usulan_resmi.pdf',
+            'file_type' => 'pdf',
+            'file_size' => 200 * 1024,
+            'category' => Document::CATEGORY_PROPOSAL,
+            'uploaded_by' => $admin->id,
+        ]);
+
+        $downloadResponse = $this->actingAs($director)->get("/director/documents/{$doc->id}/download");
+        $downloadResponse->assertOk();
+
+        $previewResponse = $this->actingAs($director)->get("/director/documents/{$doc->id}/preview");
+        $previewResponse->assertOk();
     }
 }

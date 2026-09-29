@@ -33,6 +33,9 @@ class StoreProgramRequest extends FormRequest
             'budget' => ['required', 'numeric', 'min:0'],
             'members' => ['nullable', 'array'],
             'members.*' => ['exists:users,id'],
+            'proposal_file' => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:20480'],
+            'additional_files' => ['nullable', 'array'],
+            'additional_files.*' => ['file', 'mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,zip', 'max:20480'],
         ];
     }
 
@@ -49,6 +52,10 @@ class StoreProgramRequest extends FormRequest
             'budget.numeric' => 'Anggaran harus berupa angka numerik valid.',
             'budget.min' => 'Anggaran program tidak boleh bernilai negatif.',
             'end_date.after_or_equal' => 'Tanggal selesai harus sama atau setelah tanggal mulai.',
+            'proposal_file.mimes' => 'Berkas proposal harus berformat PDF, DOC, atau DOCX.',
+            'proposal_file.max' => 'Ukuran berkas proposal maksimal 20 MB.',
+            'additional_files.*.mimes' => 'Berkas lampiran harus berformat PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, atau ZIP.',
+            'additional_files.*.max' => 'Ukuran berkas lampiran maksimal 20 MB per file.',
         ];
     }
 }

@@ -24,7 +24,7 @@
 
     <!-- Form Card -->
     <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 sm:p-8">
-        <form method="POST" action="{{ route('admin.programs.update', $program->id) }}" class="space-y-6">
+        <form method="POST" action="{{ route('admin.programs.update', $program->id) }}" enctype="multipart/form-data" class="space-y-6">
             @csrf
             @method('PUT')
 
@@ -133,6 +133,45 @@
                                 </label>
                             @endforeach
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4: Unggah Berkas Tambahan / Revisi Proposal -->
+            <div x-data="{ proposalFileName: '', proposalFileSize: '', additionalCount: 0 }">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900">Unggah Berkas Baru / Revisi Proposal</h3>
+                        <p class="text-xs text-slate-500">Unggah berkas revisi proposal atau dokumen pendukung tambahan jika diperlukan.</p>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">PDF</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">DOC / DOCX</span>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label for="proposal_file" class="block text-xs font-semibold text-slate-700 mb-1">
+                            Unggah Revisi Berkas Proposal (PDF / DOC / DOCX)
+                        </label>
+                        <input type="file" name="proposal_file" id="proposal_file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                               class="w-full text-xs rounded-xl border-slate-200 py-2 focus:border-blue-500 focus:ring-blue-500 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <p class="text-[11px] text-slate-400 mt-1">Kosongkan jika tidak ingin mengubah/menambahkan berkas proposal baru.</p>
+                        @error('proposal_file')
+                            <p class="text-[11px] text-rose-500 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div>
+                        <label for="additional_files" class="block text-xs font-semibold text-slate-700 mb-1">
+                            Lampirkan Dokumen Pendukung Lainnya
+                        </label>
+                        <input type="file" name="additional_files[]" id="additional_files" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"
+                               class="w-full text-xs rounded-xl border-slate-200 py-2 focus:border-blue-500 focus:ring-blue-500 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+                        @error('additional_files.*')
+                            <p class="text-[11px] text-rose-500 mt-1">{{ $message }}</p>
+                        @enderror
                     </div>
                 </div>
             </div>

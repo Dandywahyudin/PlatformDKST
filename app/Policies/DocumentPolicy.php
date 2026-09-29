@@ -23,17 +23,32 @@ class DocumentPolicy
 
     public function view(User $user, Document $document): bool
     {
-        return $user->hasPermission('documents.view');
+        if ($user->isAdmin() || $user->isDirector()) {
+            return true;
+        }
+
+        return $user->hasPermission('documents.view')
+            || $user->hasPermission('programs.view')
+            || $user->hasPermission('approvals.view')
+            || $document->uploaded_by === $user->id;
     }
 
     public function create(User $user): bool
     {
-        return $user->hasPermission('documents.upload');
+        return $user->hasPermission('documents.upload') || $user->hasPermission('programs.create') || $user->hasPermission('programs.update');
     }
 
     public function download(User $user, Document $document): bool
     {
-        return $user->hasPermission('documents.download');
+        if ($user->isAdmin() || $user->isDirector()) {
+            return true;
+        }
+
+        return $user->hasPermission('documents.download')
+            || $user->hasPermission('documents.view')
+            || $user->hasPermission('programs.view')
+            || $user->hasPermission('approvals.view')
+            || $document->uploaded_by === $user->id;
     }
 
     public function delete(User $user, Document $document): bool

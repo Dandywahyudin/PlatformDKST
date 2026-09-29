@@ -46,6 +46,34 @@ class DirectorDashboardController extends Controller
 
         $avgProgress = round(Program::whereIn('status', [Program::STATUS_IN_PROGRESS, Program::STATUS_COMPLETED])->avg('progress') ?? 0, 1);
 
+        // Financial & Budget Portfolio Metrics
+        $totalBudget = (float) Program::sum('budget');
+        $realizedBudget = (float) Program::all()->sum(function ($p) {
+            return ($p->budget * ($p->progress ?? 0)) / 100;
+        });
+        $budgetRealizationPct = $totalBudget > 0 ? round(($realizedBudget / $totalBudget) * 100, 1) : 0;
+
+        // Pending Approvals requiring Executive Decision
+        $pendingApprovalsCount = Program::whereIn('status', [Program::STATUS_SUBMITTED, Program::STATUS_UNDER_REVIEW])->count();
+        $pendingApprovalsList = Program::with('pic')
+            ->whereIn('status', [Program::STATUS_SUBMITTED, Program::STATUS_UNDER_REVIEW])
+            ->latest()
+            ->take(4)
+            ->get();
+
+        // Critical Attention Programs (< 30% progress or REJECTED)
+        $criticalProgramsList = Program::with(['pic', 'latestEvaluation'])
+            ->where(function ($q) {
+                $q->where('status', Program::STATUS_REJECTED)
+                    ->orWhere(function ($sub) {
+                        $sub->where('status', Program::STATUS_IN_PROGRESS)
+                            ->where('progress', '<', 35);
+                    });
+            })
+            ->latest('updated_at')
+            ->take(4)
+            ->get();
+
         // 2. Program Status Distribution
         $statusDistribution = [
             'DRAFT' => Program::where('status', Program::STATUS_DRAFT)->count(),
@@ -132,6 +160,12 @@ class DirectorDashboardController extends Controller
             'completedPrograms',
             'attentionProgramsCount',
             'avgProgress',
+            'totalBudget',
+            'realizedBudget',
+            'budgetRealizationPct',
+            'pendingApprovalsCount',
+            'pendingApprovalsList',
+            'criticalProgramsList',
             'statusDistribution',
             'monitoringHealth',
             'attentionPrograms',

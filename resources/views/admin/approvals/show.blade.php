@@ -4,12 +4,21 @@
 @section('page_title', 'Tinjau Usulan')
 
 @section('content')
+@php
+    $isDirectorPortal = request()->routeIs('director.*') || (auth()->user()?->isDirector() && !auth()->user()?->isAdmin());
+    $approvalIndexRoute = $isDirectorPortal ? 'director.approvals.index' : 'admin.approvals.index';
+    $approvalApproveRoute = $isDirectorPortal ? 'director.approvals.approve' : 'admin.approvals.approve';
+    $approvalRejectRoute = $isDirectorPortal ? 'director.approvals.reject' : 'admin.approvals.reject';
+    $programShowRoute = $isDirectorPortal ? 'director.programs.show' : 'admin.programs.show';
+    $documentDownloadRoute = $isDirectorPortal ? 'director.documents.download' : 'admin.documents.download';
+    $documentPreviewRoute = $isDirectorPortal ? 'director.documents.preview' : 'admin.documents.preview';
+@endphp
 <div x-data="{ rejectModalOpen: false, approveModalOpen: false }" class="max-w-5xl mx-auto space-y-6">
 
     <!-- Header Navigation -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <a href="{{ route('admin.approvals.index') }}" class="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center mb-1">
+            <a href="{{ route($approvalIndexRoute) }}" class="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center mb-1">
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                 </svg>
@@ -44,7 +53,7 @@
                 <h3 class="font-bold text-sm">Usulan Telah Disetujui (Approved)</h3>
                 <p class="text-xs text-teal-700 mt-0.5">Disetujui oleh <span class="font-semibold">{{ $approval->reviewer?->name }}</span> pada {{ $approval->processed_at?->format('d M Y H:i') }}.</p>
                 <div class="mt-2">
-                    <a href="{{ route('admin.programs.show', $approval->program_id) }}" class="text-xs font-bold text-teal-800 underline">Lihat Halaman Detail Program →</a>
+                    <a href="{{ route($programShowRoute, $approval->program_id) }}" class="text-xs font-bold text-teal-800 underline">Lihat Halaman Detail Program →</a>
                 </div>
             </div>
         </div>
@@ -100,18 +109,40 @@
 
     <!-- Attached Documents -->
     <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6">
-        <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">Dokumen Pendukung Usulan</h3>
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Dokumen Pendukung Usulan</h3>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700">
+                {{ $approval->program?->documents->count() ?? 0 }} Berkas
+            </span>
+        </div>
         <div class="divide-y divide-slate-100">
             @forelse ($approval->program?->documents ?? [] as $doc)
-                <div class="py-3 flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-[10px] uppercase">
+                <div class="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-center space-x-3 min-w-0">
+                        <div class="w-9 h-9 rounded-xl {{ in_array(strtolower($doc->file_type ?? ''), ['pdf']) ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600' }} flex items-center justify-center font-bold text-[10px] uppercase shrink-0">
                             {{ $doc->file_type ?? 'DOC' }}
                         </div>
-                        <div>
-                            <p class="text-xs font-bold text-slate-900">{{ $doc->name }}</p>
-                            <p class="text-[10px] text-slate-400">{{ $doc->formatted_size }} • Kategori: {{ $doc->category }}</p>
+                        <div class="truncate">
+                            <p class="text-xs font-bold text-slate-900 truncate">{{ $doc->name }}</p>
+                            <p class="text-[10px] text-slate-400">{{ $doc->formatted_size }} • Kategori: {{ $doc->category }} • Oleh: {{ $doc->uploader?->name }}</p>
                         </div>
+                    </div>
+                    <div class="flex items-center space-x-2 shrink-0 self-end sm:self-center">
+                        @if(in_array(strtolower($doc->file_type ?? ''), ['pdf', 'png', 'jpg', 'jpeg']))
+                            <a href="{{ route($documentPreviewRoute, $doc->id) }}" target="_blank" class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold inline-flex items-center transition-colors">
+                                <svg class="w-3.5 h-3.5 mr-1 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                Lihat
+                            </a>
+                        @endif
+                        <a href="{{ route($documentDownloadRoute, $doc->id) }}" class="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold inline-flex items-center transition-colors">
+                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                            Unduh
+                        </a>
                     </div>
                 </div>
             @empty
@@ -150,7 +181,7 @@
                 Apakah Anda yakin ingin menyetujui program <span class="font-semibold text-slate-900">[{{ $approval->program?->code }}] {{ $approval->program?->name }}</span>?
             </p>
 
-            <form method="POST" action="{{ route('admin.approvals.approve', $approval->id) }}" class="space-y-4">
+            <form method="POST" action="{{ route($approvalApproveRoute, $approval->id) }}" class="space-y-4">
                 @csrf
                 <div>
                     <label for="comment" class="block text-xs font-semibold text-slate-700 mb-1">Catatan Tambahan (Opsional)</label>
@@ -178,7 +209,7 @@
                 Sesuai standar operasional, Anda <span class="font-semibold text-slate-900">wajib mencantumkan alasan penolakan / catatan revisi</span> untuk pengusul.
             </p>
 
-            <form method="POST" action="{{ route('admin.approvals.reject', $approval->id) }}" class="space-y-4">
+            <form method="POST" action="{{ route($approvalRejectRoute, $approval->id) }}" class="space-y-4">
                 @csrf
                 <div>
                     <label for="reason" class="block text-xs font-semibold text-slate-700 mb-1">Alasan Penolakan / Catatan Perbaikan <span class="text-rose-500">*</span></label>

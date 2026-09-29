@@ -44,7 +44,7 @@ trait HasRolesAndPermissions
      */
     public function isDirector(): bool
     {
-        return $this->hasRole(['director', 'DIRECTOR', 'Direktur', 'Director']);
+        return $this->hasRole(['director', 'DIRECTOR', 'Direktur', 'Director', 'eksekutif', 'executive', 'pimpinan']);
     }
 
     /**
@@ -53,6 +53,27 @@ trait HasRolesAndPermissions
     public function hasPermission(string $permissionSlug): bool
     {
         if ($this->isAdmin()) {
+            return true;
+        }
+
+        if ($this->isDirector() && in_array($permissionSlug, [
+            'dashboard.view',
+            'programs.view',
+            'programs.approve',
+            'programs.reject',
+            'approvals.view',
+            'approvals.process',
+            'monev.view',
+            'monev.update',
+            'impact.view',
+            'impact.manage',
+            'documents.view',
+            'documents.download',
+            'services.view',
+            'services.update',
+            'audit_logs.view',
+            'notifications.view',
+        ])) {
             return true;
         }
 

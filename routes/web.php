@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\ApprovalController;
 use App\Http\Controllers\Admin\ConsultationServiceController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DirectorDashboardController;
+use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\ImpactMetricController;
 use App\Http\Controllers\Admin\MonevController;
 use App\Http\Controllers\Admin\ProgramController;
@@ -28,6 +29,30 @@ Route::get('/dashboard', function () {
 // Director Portal (Role-based URL: /director/*)
 Route::middleware(['auth'])->prefix('director')->name('director.')->group(function () {
     Route::get('/dashboard', [DirectorDashboardController::class, 'index'])->name('dashboard');
+
+    // Director Approval Workflow
+    Route::get('/approvals', [ApprovalController::class, 'index'])->name('approvals.index');
+    Route::get('/approvals/{approval}', [ApprovalController::class, 'show'])->name('approvals.show');
+    Route::post('/approvals/{approval}/approve', [ApprovalController::class, 'approve'])->name('approvals.approve');
+    Route::post('/approvals/{approval}/reject', [ApprovalController::class, 'reject'])->name('approvals.reject');
+
+    // Director Programs View & Action
+    Route::get('/programs', [ProgramController::class, 'index'])->name('programs.index');
+    Route::get('/programs/{program}', [ProgramController::class, 'show'])->name('programs.show');
+    Route::post('/programs/{program}/approve', [ProgramController::class, 'approve'])->name('programs.approve');
+    Route::post('/programs/{program}/reject', [ProgramController::class, 'reject'])->name('programs.reject');
+
+    // Director Monitoring & Evaluasi
+    Route::get('/monev', [MonevController::class, 'index'])->name('monev.index');
+    Route::get('/monev/{monev}', [MonevController::class, 'show'])->name('monev.show');
+
+    // Director Kinerja & Dampak (IKU)
+    Route::get('/impact', [ImpactMetricController::class, 'index'])->name('impact.index');
+    Route::get('/impact/{impact}', [ImpactMetricController::class, 'show'])->name('impact.show');
+
+    // Director Documents
+    Route::get('/documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download');
+    Route::get('/documents/{document}/preview', [DocumentController::class, 'preview'])->name('documents.preview');
 });
 
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
@@ -36,6 +61,8 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
     // Program Management & Workflow
     Route::post('/programs/{program}/submit', [ProgramController::class, 'submit'])->name('programs.submit');
+    Route::post('/programs/{program}/approve', [ProgramController::class, 'approve'])->name('programs.approve');
+    Route::post('/programs/{program}/reject', [ProgramController::class, 'reject'])->name('programs.reject');
     Route::post('/programs/{program}/start', [ProgramController::class, 'start'])->name('programs.start');
     Route::post('/programs/{program}/complete', [ProgramController::class, 'complete'])->name('programs.complete');
     Route::resource('programs', ProgramController::class);
@@ -61,6 +88,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/tasks', fn () => redirect()->route('admin.dashboard'))->name('tasks.index');
     Route::get('/tasks/create', fn () => redirect()->route('admin.dashboard'))->name('tasks.create');
 
+    // Document Management
+    Route::get('/documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download');
+    Route::get('/documents/{document}/preview', [DocumentController::class, 'preview'])->name('documents.preview');
     Route::get('/documents', fn () => redirect()->route('admin.dashboard'))->name('documents.index');
 
     // User Management

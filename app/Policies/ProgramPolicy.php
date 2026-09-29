@@ -52,11 +52,11 @@ class ProgramPolicy
 
     public function approve(User $user, Program $program): bool
     {
-        return $user->hasPermission('programs.approve') && in_array($program->status, [Program::STATUS_SUBMITTED, Program::STATUS_UNDER_REVIEW]);
+        return ($user->hasPermission('programs.approve') || $user->hasPermission('approvals.process')) && in_array($program->status, [Program::STATUS_SUBMITTED, Program::STATUS_UNDER_REVIEW]);
     }
 
     public function reject(User $user, Program $program): bool
     {
-        return $user->hasPermission('programs.reject') && in_array($program->status, [Program::STATUS_SUBMITTED, Program::STATUS_UNDER_REVIEW]);
+        return ($user->hasPermission('programs.reject') || $user->hasPermission('approvals.process')) && in_array($program->status, [Program::STATUS_SUBMITTED, Program::STATUS_UNDER_REVIEW]);
     }
 }

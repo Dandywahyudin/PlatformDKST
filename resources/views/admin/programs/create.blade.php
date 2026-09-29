@@ -20,7 +20,7 @@
 
     <!-- Form Card -->
     <div class="bg-white rounded-3xl border border-slate-200/80 shadow-sm p-6 sm:p-8">
-        <form method="POST" action="{{ route('admin.programs.store') }}" class="space-y-6">
+        <form method="POST" action="{{ route('admin.programs.store') }}" enctype="multipart/form-data" class="space-y-6">
             @csrf
 
             <!-- Section 1: Informasi Pokok Usulan -->
@@ -112,6 +112,81 @@
                                 </label>
                             @endforeach
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4: Berkas Proposal & Dokumen Pendukung (PDF/DOC) -->
+            <div x-data="{ proposalFileName: '', proposalFileSize: '', additionalCount: 0 }">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900">Unggah Berkas Proposal & Lampiran</h3>
+                        <p class="text-xs text-slate-500">Lampirkan berkas dokumen proposal resmi untuk ditinjau oleh pimpinan/reviewer.</p>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">PDF</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">DOC / DOCX</span>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Utama: Proposal File Upload -->
+                    <div>
+                        <label for="proposal_file" class="block text-xs font-semibold text-slate-700 mb-1">
+                            Berkas Utama Proposal (PDF / DOC / DOCX)
+                        </label>
+                        <div class="relative border-2 border-dashed rounded-2xl p-4 text-center transition-colors hover:border-blue-400 bg-slate-50/50 @error('proposal_file') border-rose-300 bg-rose-50/30 @else border-slate-200 @enderror">
+                            <input type="file" name="proposal_file" id="proposal_file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                   @change="
+                                       if ($event.target.files.length > 0) {
+                                           proposalFileName = $event.target.files[0].name;
+                                           proposalFileSize = ($event.target.files[0].size / 1024 / 1024).toFixed(2) + ' MB';
+                                       } else {
+                                           proposalFileName = '';
+                                           proposalFileSize = '';
+                                       }
+                                   "
+                                   class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                            <div class="flex flex-col items-center justify-center space-y-2 pointer-events-none">
+                                <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-xs">
+                                    <span class="font-bold text-blue-600">Klik untuk memilih berkas proposal</span> atau seret ke area ini
+                                </div>
+                                <p class="text-[11px] text-slate-400">Mendukung format: <strong class="text-slate-600">.PDF, .DOC, .DOCX</strong> (Maksimal 20 MB)</p>
+                            </div>
+
+                            <!-- Selected File Indicator -->
+                            <template x-if="proposalFileName">
+                                <div class="mt-3 p-2.5 bg-white rounded-xl border border-blue-200 flex items-center justify-between text-xs shadow-sm">
+                                    <div class="flex items-center space-x-2 truncate">
+                                        <span class="w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold">📄</span>
+                                        <span class="font-semibold text-slate-800 truncate" x-text="proposalFileName"></span>
+                                    </div>
+                                    <span class="text-[11px] font-mono font-medium text-slate-500 shrink-0 ml-2" x-text="proposalFileSize"></span>
+                                </div>
+                            </template>
+                        </div>
+                        @error('proposal_file')
+                            <p class="text-[11px] text-rose-500 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Lampiran Tambahan (Optional Additional Documents) -->
+                    <div>
+                        <label for="additional_files" class="block text-xs font-semibold text-slate-700 mb-1">
+                            Berkas Pendukung / Lampiran Tambahan (TOR, RAB, Format Excel, dll.)
+                        </label>
+                        <input type="file" name="additional_files[]" id="additional_files" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"
+                               @change="additionalCount = $event.target.files.length"
+                               class="w-full text-xs rounded-xl border-slate-200 py-2 focus:border-blue-500 focus:ring-blue-500 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200">
+                        <p class="text-[11px] text-slate-400 mt-1">Dapat memilih lebih dari satu berkas (Multi-file upload). Maksimal 20 MB per berkas.</p>
+                        @error('additional_files.*')
+                            <p class="text-[11px] text-rose-500 mt-1">{{ $message }}</p>
+                        @enderror
                     </div>
                 </div>
             </div>

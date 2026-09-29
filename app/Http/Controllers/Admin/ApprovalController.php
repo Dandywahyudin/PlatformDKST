@@ -82,8 +82,10 @@ class ApprovalController extends Controller
 
         $approvalService->approveProgram($approval, $request->user(), $validated['comment'] ?? null);
 
+        $redirectRoute = $request->routeIs('director.*') ? 'director.approvals.show' : 'admin.approvals.show';
+
         return redirect()
-            ->route('admin.approvals.show', $approval->id)
+            ->route($redirectRoute, $approval->id)
             ->with('success', "Usulan program [{$approval->program?->code}] berhasil disetujui (Approved).");
     }
 
@@ -103,8 +105,10 @@ class ApprovalController extends Controller
 
         $approvalService->rejectProgram($approval, $request->user(), $validated['reason']);
 
+        $redirectRoute = $request->routeIs('director.*') ? 'director.approvals.show' : 'admin.approvals.show';
+
         return redirect()
-            ->route('admin.approvals.show', $approval->id)
+            ->route($redirectRoute, $approval->id)
             ->with('success', "Usulan program [{$approval->program?->code}] telah ditolak dengan catatan perbaikan.");
     }
 }

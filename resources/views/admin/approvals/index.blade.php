@@ -4,6 +4,11 @@
 @section('page_title', 'Antrean Approval')
 
 @section('content')
+@php
+    $isDirectorPortal = request()->routeIs('director.*') || (auth()->user()?->isDirector() && !auth()->user()?->isAdmin());
+    $approvalIndexRoute = $isDirectorPortal ? 'director.approvals.index' : 'admin.approvals.index';
+    $approvalShowRoute = $isDirectorPortal ? 'director.approvals.show' : 'admin.approvals.show';
+@endphp
 <div class="space-y-6">
 
     <!-- Header Row -->
@@ -19,22 +24,22 @@
         
         <!-- Status Tabs -->
         <div class="flex flex-wrap items-center gap-2 text-xs">
-            <a href="{{ route('admin.approvals.index') }}" class="px-3.5 py-1.5 rounded-xl font-semibold transition-colors {{ !request('status') ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200' }}">
+            <a href="{{ route($approvalIndexRoute) }}" class="px-3.5 py-1.5 rounded-xl font-semibold transition-colors {{ !request('status') ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200' }}">
                 Semua: <span class="font-bold">{{ $stats['total'] }}</span>
             </a>
-            <a href="{{ route('admin.approvals.index', ['status' => 'PENDING']) }}" class="px-3.5 py-1.5 rounded-xl font-semibold transition-colors {{ request('status') === 'PENDING' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700 hover:bg-amber-100' }}">
+            <a href="{{ route($approvalIndexRoute, ['status' => 'PENDING']) }}" class="px-3.5 py-1.5 rounded-xl font-semibold transition-colors {{ request('status') === 'PENDING' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700 hover:bg-amber-100' }}">
                 Menunggu Review: <span class="font-bold">{{ $stats['pending'] }}</span>
             </a>
-            <a href="{{ route('admin.approvals.index', ['status' => 'APPROVED']) }}" class="px-3.5 py-1.5 rounded-xl font-semibold transition-colors {{ request('status') === 'APPROVED' ? 'bg-teal-600 text-white' : 'bg-teal-50 text-teal-700 hover:bg-teal-100' }}">
+            <a href="{{ route($approvalIndexRoute, ['status' => 'APPROVED']) }}" class="px-3.5 py-1.5 rounded-xl font-semibold transition-colors {{ request('status') === 'APPROVED' ? 'bg-teal-600 text-white' : 'bg-teal-50 text-teal-700 hover:bg-teal-100' }}">
                 Disetujui: <span class="font-bold">{{ $stats['approved'] }}</span>
             </a>
-            <a href="{{ route('admin.approvals.index', ['status' => 'REJECTED']) }}" class="px-3.5 py-1.5 rounded-xl font-semibold transition-colors {{ request('status') === 'REJECTED' ? 'bg-rose-600 text-white' : 'bg-rose-50 text-rose-700 hover:bg-rose-100' }}">
+            <a href="{{ route($approvalIndexRoute, ['status' => 'REJECTED']) }}" class="px-3.5 py-1.5 rounded-xl font-semibold transition-colors {{ request('status') === 'REJECTED' ? 'bg-rose-600 text-white' : 'bg-rose-50 text-rose-700 hover:bg-rose-100' }}">
                 Ditolak: <span class="font-bold">{{ $stats['rejected'] }}</span>
             </a>
         </div>
 
         <!-- Filter & Search Form -->
-        <form method="GET" action="{{ route('admin.approvals.index') }}" class="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-3 border-t border-slate-100">
+        <form method="GET" action="{{ route($approvalIndexRoute) }}" class="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-3 border-t border-slate-100">
             <div class="sm:col-span-9 relative">
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari kode program, nama usulan, atau pengusul..."
                        class="w-full text-xs rounded-xl border-slate-200 pl-9 pr-4 py-2.5 focus:border-blue-500 focus:ring-blue-500 placeholder:text-slate-400">
@@ -47,7 +52,7 @@
                     Cari
                 </button>
                 @if (request()->hasAny(['search', 'status']))
-                    <a href="{{ route('admin.approvals.index') }}" class="p-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors" title="Reset filter">
+                    <a href="{{ route($approvalIndexRoute) }}" class="p-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors" title="Reset filter">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                         </svg>
@@ -85,7 +90,7 @@
                             <!-- Program Code & Title -->
                             <td class="px-6 py-4">
                                 <span class="font-mono text-[10px] text-blue-600 font-bold block">{{ $approval->program?->code }}</span>
-                                <a href="{{ route('admin.approvals.show', $approval->id) }}" class="font-bold text-slate-900 hover:text-blue-600 text-sm block max-w-sm truncate">
+                                <a href="{{ route($approvalShowRoute, $approval->id) }}" class="font-bold text-slate-900 hover:text-blue-600 text-sm block max-w-sm truncate">
                                     {{ $approval->program?->name }}
                                 </a>
                             </td>
@@ -115,7 +120,7 @@
 
                             <!-- Actions -->
                             <td class="px-6 py-4 text-right">
-                                <a href="{{ route('admin.approvals.show', $approval->id) }}" class="inline-flex items-center px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-sm transition-all">
+                                <a href="{{ route($approvalShowRoute, $approval->id) }}" class="inline-flex items-center px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-sm transition-all">
                                     Tinjau Usulan →
                                 </a>
                             </td>

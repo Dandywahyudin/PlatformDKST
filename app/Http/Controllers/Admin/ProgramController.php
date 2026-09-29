@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreProgramRequest;
 use App\Http\Requests\UpdateProgramRequest;
+use App\Models\Approval;
 use App\Models\Program;
 use App\Models\User;
 use App\Services\ApprovalService;
@@ -145,6 +146,73 @@ class ProgramController extends Controller
         return redirect()
             ->route('admin.programs.show', $program->id)
             ->with('success', "Usulan program [{$program->code}] berhasil disubmit ke antrean approval.");
+    }
+
+    /**
+     * Approve the program proposal.
+     */
+    public function approve(Request $request, Program $program, ApprovalService $approvalService): RedirectResponse
+    {
+        Gate::authorize('approve', $program);
+
+        $validated = $request->validate([
+            'comment' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $approval = $program->latestApproval;
+
+        if (! $approval) {
+            $approval = Approval::create([
+                'program_id' => $program->id,
+                'requested_by' => $program->created_by ?? $request->user()->id,
+                'status' => Approval::STATUS_PENDING,
+            ]);
+        }
+
+        if ($approval->status === Approval::STATUS_PENDING) {
+            $approvalService->approveProgram($approval, $request->user(), $validated['comment'] ?? null);
+        }
+
+        $redirectRoute = $request->routeIs('director.*') ? 'director.programs.show' : 'admin.programs.show';
+
+        return redirect()
+            ->route($redirectRoute, $program->id)
+            ->with('success', "Usulan program [{$program->code}] berhasil disetujui (Approved).");
+    }
+
+    /**
+     * Reject the program proposal.
+     */
+    public function reject(Request $request, Program $program, ApprovalService $approvalService): RedirectResponse
+    {
+        Gate::authorize('reject', $program);
+
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:5', 'max:2000'],
+        ], [
+            'reason.required' => 'Alasan penolakan usulan program wajib diisi.',
+            'reason.min' => 'Alasan penolakan minimal 5 karakter.',
+        ]);
+
+        $approval = $program->latestApproval;
+
+        if (! $approval) {
+            $approval = Approval::create([
+                'program_id' => $program->id,
+                'requested_by' => $program->created_by ?? $request->user()->id,
+                'status' => Approval::STATUS_PENDING,
+            ]);
+        }
+
+        if ($approval->status === Approval::STATUS_PENDING) {
+            $approvalService->rejectProgram($approval, $request->user(), $validated['reason']);
+        }
+
+        $redirectRoute = $request->routeIs('director.*') ? 'director.programs.show' : 'admin.programs.show';
+
+        return redirect()
+            ->route($redirectRoute, $program->id)
+            ->with('success', "Usulan program [{$program->code}] telah ditolak dengan catatan perbaikan.");
     }
 
     /**

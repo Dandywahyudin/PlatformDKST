@@ -4,12 +4,20 @@
 @section('page_title', 'Detail Program')
 
 @section('content')
+@php
+    $isDirectorPortal = request()->routeIs('director.*') || (auth()->user()?->isDirector() && !auth()->user()?->isAdmin());
+    $programsIndexRoute = $isDirectorPortal ? 'director.programs.index' : 'admin.programs.index';
+    $approvalShowRoute = $isDirectorPortal ? 'director.approvals.show' : 'admin.approvals.show';
+    $programApproveRoute = $isDirectorPortal ? 'director.programs.approve' : 'admin.programs.approve';
+    $documentDownloadRoute = $isDirectorPortal ? 'director.documents.download' : 'admin.documents.download';
+    $documentPreviewRoute = $isDirectorPortal ? 'director.documents.preview' : 'admin.documents.preview';
+@endphp
 <div class="space-y-6">
 
     <!-- Header Navigation & Status Bar -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <a href="{{ route('admin.programs.index') }}" class="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center mb-1">
+            <a href="{{ route($programsIndexRoute) }}" class="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center mb-1">
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                 </svg>
@@ -52,12 +60,22 @@
                 </form>
             @elseif ($program->status === 'SUBMITTED' || $program->status === 'UNDER_REVIEW')
                 @if ($program->latestApproval)
-                    <a href="{{ route('admin.approvals.show', $program->latestApproval->id) }}" class="inline-flex items-center px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-sm transition-all">
+                    <a href="{{ route($approvalShowRoute, $program->latestApproval->id) }}" class="inline-flex items-center px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-sm transition-all">
                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
-                        Buka Review Approval
+                        Tinjau & Setujui Proposal
                     </a>
+                @elseif (auth()->user()->can('approve', $program))
+                    <form method="POST" action="{{ route($programApproveRoute, $program->id) }}" onsubmit="return confirm('Setujui usulan program ini?');" class="inline">
+                        @csrf
+                        <button type="submit" class="inline-flex items-center px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/30 transition-all">
+                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Setujui Usulan (Approve)
+                        </button>
+                    </form>
                 @endif
             @elseif ($program->status === 'APPROVED')
                 <form method="POST" action="{{ route('admin.programs.start', $program->id) }}" onsubmit="return confirm('Mulai pelaksanaan program ini secara resmi?');" class="inline">
@@ -162,19 +180,36 @@
 
                 <div class="divide-y divide-slate-100">
                     @forelse ($program->documents as $doc)
-                        <div class="py-3 flex items-center justify-between">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-[10px] uppercase">
+                        <div class="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-center space-x-3 min-w-0">
+                                <div class="w-9 h-9 rounded-xl {{ in_array(strtolower($doc->file_type ?? ''), ['pdf']) ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600' }} flex items-center justify-center font-bold text-[10px] uppercase shrink-0">
                                     {{ $doc->file_type ?? 'DOC' }}
                                 </div>
-                                <div>
-                                    <p class="text-xs font-bold text-slate-900">{{ $doc->name }}</p>
+                                <div class="truncate">
+                                    <p class="text-xs font-bold text-slate-900 truncate">{{ $doc->name }}</p>
                                     <p class="text-[10px] text-slate-400">{{ $doc->formatted_size }} • Diunggah oleh {{ $doc->uploader?->name }}</p>
                                 </div>
                             </div>
-                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600">
-                                {{ $doc->category }}
-                            </span>
+                            <div class="flex items-center space-x-2 shrink-0 self-end sm:self-center">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600">
+                                    {{ $doc->category }}
+                                </span>
+                                @if(in_array(strtolower($doc->file_type ?? ''), ['pdf', 'png', 'jpg', 'jpeg']))
+                                    <a href="{{ route($documentPreviewRoute, $doc->id) }}" target="_blank" class="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold inline-flex items-center transition-colors">
+                                        <svg class="w-3.5 h-3.5 mr-1 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                        </svg>
+                                        Lihat
+                                    </a>
+                                @endif
+                                <a href="{{ route($documentDownloadRoute, $doc->id) }}" class="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold inline-flex items-center transition-colors">
+                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                    </svg>
+                                    Unduh
+                                </a>
+                            </div>
                         </div>
                     @empty
                         <div class="py-8 text-center text-slate-400 text-xs">

@@ -18,16 +18,16 @@ class ApprovalPolicy
 
     public function viewAny(User $user): bool
     {
-        return $user->hasPermission('approvals.view');
+        return $user->isDirector() || $user->hasPermission('approvals.view');
     }
 
     public function view(User $user, Approval $approval): bool
     {
-        return $user->hasPermission('approvals.view') || $user->id === $approval->requested_by;
+        return $user->isDirector() || $user->hasPermission('approvals.view') || $user->id === $approval->requested_by;
     }
 
     public function process(User $user, Approval $approval): bool
     {
-        return $user->hasPermission('approvals.process') && $approval->status === Approval::STATUS_PENDING;
+        return ($user->isDirector() || $user->hasPermission('approvals.process')) && $approval->status === Approval::STATUS_PENDING;
     }
 }

@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\AuditLog;
+use App\Models\Document;
 use App\Models\Program;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 class ProgramService
@@ -70,6 +72,43 @@ class ProgramService
                 $program->members()->sync($memberSync);
             }
 
+            // Handle Proposal Document Upload (PDF / DOC / DOCX)
+            if (isset($data['proposal_file']) && $data['proposal_file'] instanceof UploadedFile) {
+                $file = $data['proposal_file'];
+                $path = $file->store('documents/programs', 'public');
+                Document::create([
+                    'program_id' => $program->id,
+                    'uploaded_by' => $creator->id,
+                    'name' => 'Dokumen Proposal - '.$program->name,
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_path' => $path,
+                    'file_type' => strtolower($file->getClientOriginalExtension()),
+                    'file_size' => $file->getSize(),
+                    'category' => Document::CATEGORY_PROPOSAL,
+                    'description' => 'Dokumen proposal usulan program resmi yang diunggah saat pengajuan.',
+                ]);
+            }
+
+            // Handle Additional Supporting Documents
+            if (! empty($data['additional_files']) && is_array($data['additional_files'])) {
+                foreach ($data['additional_files'] as $file) {
+                    if ($file instanceof UploadedFile) {
+                        $path = $file->store('documents/programs', 'public');
+                        Document::create([
+                            'program_id' => $program->id,
+                            'uploaded_by' => $creator->id,
+                            'name' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+                            'file_name' => $file->getClientOriginalName(),
+                            'file_path' => $path,
+                            'file_type' => strtolower($file->getClientOriginalExtension()),
+                            'file_size' => $file->getSize(),
+                            'category' => Document::CATEGORY_OTHER,
+                            'description' => 'Dokumen lampiran pendukung usulan program.',
+                        ]);
+                    }
+                }
+            }
+
             AuditLogService::log(
                 AuditLog::MODULE_PROGRAMS,
                 AuditLog::ACTION_CREATE,
@@ -90,7 +129,7 @@ class ProgramService
      */
     public function updateProgram(Program $program, array $data, User $updater): Program
     {
-        return DB::transaction(function () use ($program, $data) {
+        return DB::transaction(function () use ($program, $data, $updater) {
             $oldData = $program->only(['name', 'description', 'pic_id', 'start_date', 'end_date', 'budget', 'progress', 'status']);
 
             $picUser = ! empty($data['pic_id']) ? User::find($data['pic_id']) : null;
@@ -117,6 +156,43 @@ class ProgramService
                     $memberSync[$memberId] = ['role' => 'MEMBER'];
                 }
                 $program->members()->sync($memberSync);
+            }
+
+            // Handle New Proposal Document Upload if provided
+            if (isset($data['proposal_file']) && $data['proposal_file'] instanceof UploadedFile) {
+                $file = $data['proposal_file'];
+                $path = $file->store('documents/programs', 'public');
+                Document::create([
+                    'program_id' => $program->id,
+                    'uploaded_by' => $updater->id,
+                    'name' => 'Dokumen Proposal (Revisi) - '.$program->name,
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_path' => $path,
+                    'file_type' => strtolower($file->getClientOriginalExtension()),
+                    'file_size' => $file->getSize(),
+                    'category' => Document::CATEGORY_PROPOSAL,
+                    'description' => 'Dokumen proposal usulan program diperbarui.',
+                ]);
+            }
+
+            // Handle Additional Supporting Documents
+            if (! empty($data['additional_files']) && is_array($data['additional_files'])) {
+                foreach ($data['additional_files'] as $file) {
+                    if ($file instanceof UploadedFile) {
+                        $path = $file->store('documents/programs', 'public');
+                        Document::create([
+                            'program_id' => $program->id,
+                            'uploaded_by' => $updater->id,
+                            'name' => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+                            'file_name' => $file->getClientOriginalName(),
+                            'file_path' => $path,
+                            'file_type' => strtolower($file->getClientOriginalExtension()),
+                            'file_size' => $file->getSize(),
+                            'category' => Document::CATEGORY_OTHER,
+                            'description' => 'Dokumen lampiran pendukung usulan program.',
+                        ]);
+                    }
+                }
             }
 
             AuditLogService::log(

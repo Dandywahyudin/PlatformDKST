@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Approval;
 use App\Models\Program;
 use App\Models\Role;
 use App\Models\User;
@@ -46,11 +47,10 @@ class DirectorDashboardTest extends TestCase
         $response->assertOk();
         $response->assertSee('Dashboard Direktur');
         $response->assertSee('Ringkasan Eksekutif Program');
-        $response->assertSee('Total Program');
-        $response->assertSee('Program Berjalan');
-        $response->assertSee('Program Selesai');
-        $response->assertSee('Perlu Perhatian');
+        $response->assertSee('Total Portofolio');
+        $response->assertSee('Realisasi Anggaran');
         $response->assertSee('Kesehatan Pelaksanaan Program');
+        $response->assertSee('Capaian Indikator Kinerja Utama');
     }
 
     public function test_director_dashboard_with_year_filter(): void
@@ -84,5 +84,140 @@ class DirectorDashboardTest extends TestCase
         $response = $this->actingAs($admin)->get('/dashboard');
 
         $response->assertRedirect('/admin/dashboard');
+    }
+
+    public function test_director_can_access_approvals_inbox(): void
+    {
+        $directorRole = Role::where('slug', 'director')->first();
+        $director = User::factory()->create([
+            'email' => 'director.approval@dkst.itb.ac.id',
+            'status' => 'active',
+        ]);
+        $director->roles()->sync([$directorRole->id]);
+
+        $response = $this->actingAs($director)->get(route('director.approvals.index'));
+
+        $response->assertOk();
+        $response->assertSee('Antrean Persetujuan Usulan Program');
+    }
+
+    public function test_director_can_approve_submitted_program_via_director_approvals_route(): void
+    {
+        $admin = User::where('email', 'admin@dkst.itb.ac.id')->first();
+        $directorRole = Role::where('slug', 'director')->first();
+        $director = User::factory()->create([
+            'email' => 'director.reviewer@dkst.itb.ac.id',
+            'status' => 'active',
+        ]);
+        $director->roles()->sync([$directorRole->id]);
+
+        $program = Program::create([
+            'code' => 'DKST-PRG-2026-0099',
+            'name' => 'Program Inkubasi Flagship 2026',
+            'budget' => 350000000,
+            'progress' => 0,
+            'status' => Program::STATUS_SUBMITTED,
+            'created_by' => $admin->id,
+        ]);
+
+        $approval = Approval::create([
+            'program_id' => $program->id,
+            'requested_by' => $admin->id,
+            'status' => Approval::STATUS_PENDING,
+        ]);
+
+        $showResponse = $this->actingAs($director)->get(route('director.approvals.show', $approval->id));
+        $showResponse->assertOk();
+        $showResponse->assertSee('Tinjau Usulan');
+
+        $response = $this->actingAs($director)->post(route('director.approvals.approve', $approval->id), [
+            'comment' => 'Disetujui untuk diimplementasikan via portal direktur.',
+        ]);
+
+        $response->assertRedirect(route('director.approvals.show', $approval->id));
+        $this->assertDatabaseHas('approvals', [
+            'id' => $approval->id,
+            'status' => Approval::STATUS_APPROVED,
+            'reviewer_id' => $director->id,
+        ]);
+        $this->assertDatabaseHas('programs', [
+            'id' => $program->id,
+            'status' => Program::STATUS_APPROVED,
+        ]);
+    }
+
+    public function test_director_can_reject_submitted_program_with_reason_via_director_route(): void
+    {
+        $admin = User::where('email', 'admin@dkst.itb.ac.id')->first();
+        $directorRole = Role::where('slug', 'director')->first();
+        $director = User::factory()->create([
+            'email' => 'director.reject@dkst.itb.ac.id',
+            'status' => 'active',
+        ]);
+        $director->roles()->sync([$directorRole->id]);
+
+        $program = Program::create([
+            'code' => 'DKST-PRG-2026-0098',
+            'name' => 'Program Riset Belum Lengkap',
+            'budget' => 150000000,
+            'progress' => 0,
+            'status' => Program::STATUS_SUBMITTED,
+            'created_by' => $admin->id,
+        ]);
+
+        $approval = Approval::create([
+            'program_id' => $program->id,
+            'requested_by' => $admin->id,
+            'status' => Approval::STATUS_PENDING,
+        ]);
+
+        $response = $this->actingAs($director)->post(route('director.approvals.reject', $approval->id), [
+            'reason' => 'RAB dan rincian deliverable perlu dilengkapi terlebih dahulu.',
+        ]);
+
+        $response->assertRedirect(route('director.approvals.show', $approval->id));
+        $this->assertDatabaseHas('approvals', [
+            'id' => $approval->id,
+            'status' => Approval::STATUS_REJECTED,
+            'reviewer_id' => $director->id,
+            'reason' => 'RAB dan rincian deliverable perlu dilengkapi terlebih dahulu.',
+        ]);
+        $this->assertDatabaseHas('programs', [
+            'id' => $program->id,
+            'status' => Program::STATUS_REJECTED,
+        ]);
+    }
+
+    public function test_director_can_view_and_approve_program_via_director_program_route(): void
+    {
+        $admin = User::where('email', 'admin@dkst.itb.ac.id')->first();
+        $directorRole = Role::where('slug', 'director')->first();
+        $director = User::factory()->create([
+            'email' => 'director.direct@dkst.itb.ac.id',
+            'status' => 'active',
+        ]);
+        $director->roles()->sync([$directorRole->id]);
+
+        $program = Program::create([
+            'code' => 'DKST-PRG-2026-0097',
+            'name' => 'Program Akselerasi Startup 2026',
+            'budget' => 450000000,
+            'progress' => 0,
+            'status' => Program::STATUS_SUBMITTED,
+            'created_by' => $admin->id,
+        ]);
+
+        $viewResponse = $this->actingAs($director)->get(route('director.programs.show', $program->id));
+        $viewResponse->assertOk();
+
+        $response = $this->actingAs($director)->post(route('director.programs.approve', $program->id), [
+            'comment' => 'Disetujui langsung oleh direktur.',
+        ]);
+
+        $response->assertRedirect(route('director.programs.show', $program->id));
+        $this->assertDatabaseHas('programs', [
+            'id' => $program->id,
+            'status' => Program::STATUS_APPROVED,
+        ]);
     }
 }

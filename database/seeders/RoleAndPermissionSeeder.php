@@ -105,6 +105,8 @@ class RoleAndPermissionSeeder extends Seeder
         $directorPermissions = Permission::whereIn('slug', [
             'dashboard.view',
             'programs.view',
+            'programs.approve',
+            'programs.reject',
             'approvals.view',
             'approvals.process',
             'documents.view',
@@ -132,6 +134,8 @@ class RoleAndPermissionSeeder extends Seeder
         $reviewerPermissions = Permission::whereIn('slug', [
             'dashboard.view',
             'programs.view',
+            'programs.approve',
+            'programs.reject',
             'approvals.view',
             'approvals.process',
             'documents.view',
