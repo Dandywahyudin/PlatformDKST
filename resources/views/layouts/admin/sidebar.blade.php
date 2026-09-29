@@ -1,5 +1,5 @@
 @php
-    $isDirectorView = (auth()->user()?->isDirector() && !auth()->user()?->isAdmin()) || request()->routeIs('admin.director.*');
+    $isDirectorView = (auth()->user()?->isDirector() && !auth()->user()?->isAdmin()) || request()->routeIs('director.*');
 @endphp
 
 <aside 
@@ -8,7 +8,7 @@
     
     <!-- Brand Header -->
     <div class="h-16 flex items-center justify-between px-6 bg-slate-950 border-b border-slate-800">
-        <a href="{{ $isDirectorView ? route('admin.director.dashboard') : route('admin.dashboard') }}" class="flex items-center space-x-3 group">
+        <a href="{{ $isDirectorView ? route('director.dashboard') : route('admin.dashboard') }}" class="flex items-center space-x-3 group">
             <img src="{{ asset('storage/IIP-Logo.png') }}" alt="Logo IIP DKST ITB" class="h-9 w-auto object-contain group-hover:scale-105 transition-transform">
             <div>
                 <span class="text-base font-bold text-white tracking-wide block leading-none">DKST ITB</span>
@@ -32,8 +32,8 @@
             <p class="px-3 text-[11px] font-semibold tracking-wider text-slate-500 uppercase mb-2">Utama</p>
             <nav class="space-y-1">
                 @if($isDirectorView)
-                    <a href="{{ route('admin.director.dashboard') }}" 
-                       class="flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition-all {{ request()->routeIs('admin.director.dashboard') ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-semibold' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60' }}">
+                    <a href="{{ route('director.dashboard') }}" 
+                       class="flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition-all {{ request()->routeIs('director.dashboard') ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-semibold' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60' }}">
                         <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
                         </svg>
@@ -56,7 +56,7 @@
                         </svg>
                         <span>Dashboard Admin</span>
                     </a>
-                    <a href="{{ route('admin.director.dashboard') }}" 
+                    <a href="{{ route('director.dashboard') }}" 
                        class="flex items-center px-3 py-2 rounded-xl text-xs font-medium text-blue-400 hover:text-blue-300 hover:bg-blue-950/40 transition-colors">
                         <svg class="w-4 h-4 mr-2.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>

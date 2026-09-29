@@ -19,7 +19,7 @@
         <!-- Right Controls: User Profile Info & Year/Period Filter -->
         <div class="flex flex-wrap items-center gap-3 sm:gap-4 relative z-10">
             <!-- Period Filter Form -->
-            <form method="GET" action="{{ route('admin.director.dashboard') }}" class="flex items-center space-x-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200">
+            <form method="GET" action="{{ route('director.dashboard') }}" class="flex items-center space-x-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200">
                 <span class="text-xs font-semibold text-slate-500 pl-2">Tahun:</span>
                 <select name="year" onchange="this.form.submit()" class="text-xs font-bold rounded-xl border-none bg-white py-1.5 px-3 text-slate-800 shadow-sm focus:ring-2 focus:ring-blue-500 cursor-pointer">
                     @foreach($availableYears as $y)
